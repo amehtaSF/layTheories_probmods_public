@@ -1,0 +1,537 @@
+---
+title: "probmods somatic"
+author: "Kate Petrova"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Setup
+
+```{r}
+if(!suppressWarnings(require(pacman))){install.packages("pacman");library("pacman")}
+p_load(tidyverse,
+       tidyr,
+       dplyr,
+       stats,
+       janitor,
+       jsonlite,
+       rjson,
+       psych,
+       ggpubr,
+       gridExtra,
+       matrixStats,
+       DescTools,
+       sur,
+       patchwork,
+       sjPlot,
+       corrplot,
+       here,
+       ggridges)
+```
+
+```{r}
+kp_colors = c("#E24263", "#408F8A", "#ED6F31", "#401959", "#F4B43C")
+
+kp_theme <- function() {
+  theme_bw() + theme(
+    plot.title = element_text(
+      size = 22,
+      face = "bold"
+    ),
+    axis.title = element_text(
+      size = 18,
+      face = "bold"
+    ),
+    axis.text.x = element_text(
+      size = 14
+    ),
+    axis.title.y = element_text(
+      size = 14
+    )
+  )
+}
+```
+
+```{r}
+knitr::opts_knit$set(root.dir = here())
+```
+
+# Model 0
+
+## Offense
+
+### Data processing
+
+```{r}
+m0a_anger <- as.data.frame(fromJSON(file = "../data/m0a_anger.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "anger") |>
+  rename(probability = item)
+  
+m0a_sadness <- as.data.frame(fromJSON(file = "../data/m0a_sadness.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "sadness") |>
+  rename(probability = item)
+
+m0a_pride <- as.data.frame(fromJSON(file = "../data/m0a_pride.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "pride") |>
+  rename(probability = item)
+
+m0a <- bind_rows(m0a_anger, m0a_sadness, m0a_pride)
+
+```
+
+### Viz
+
+```{r}
+m0ap <- ggplot(m0a) +
+  aes(probability, density, group = emotion, color = emotion, fill = emotion) +
+  geom_smooth(method = "loess") +
+  labs(title = "M0 offense: baseline model") +
+  theme_pubr() +
+  scale_fill_manual(values = c("#E24263", "#F4B43C", "#408F8A")) +
+  scale_color_manual(values = c("#E24263", "#F4B43C", "#408F8A")) 
+```
+
+## Loss
+
+### Data processing
+
+```{r}
+m0b_anger <- as.data.frame(fromJSON(file = "../data/m0b_anger.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "anger") |>
+  rename(probability = item)
+  
+m0b_sadness <- as.data.frame(fromJSON(file = "../data/m0b_sadness.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "sadness") |>
+  rename(probability = item)
+
+m0b_pride <- as.data.frame(fromJSON(file = "../data/m0b_pride.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "pride") |>
+  rename(probability = item)
+
+m0b <- bind_rows(m0b_anger, m0b_sadness, m0b_pride)
+
+```
+
+### Viz
+
+```{r}
+m0bp <- ggplot(m0b) +
+  aes(probability, density, group = emotion, color = emotion, fill = emotion) +
+  geom_smooth(method = "loess") +
+  labs(title = "M0 loss: baseline model") +
+  theme_pubr() +
+  scale_fill_manual(values = c("#E24263", "#F4B43C", "#408F8A")) +
+  scale_color_manual(values = c("#E24263", "#F4B43C", "#408F8A")) 
+```
+
+## Accomplishment
+
+### Data processing
+
+```{r}
+m0c_anger <- as.data.frame(fromJSON(file = "../data/m0c_anger.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "anger") |>
+  rename(probability = item)
+  
+m0c_sadness <- as.data.frame(fromJSON(file = "../data/m0c_sadness.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "sadness") |>
+  rename(probability = item)
+
+m0c_pride <- as.data.frame(fromJSON(file = "../data/m0c_pride.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "pride") |>
+  rename(probability = item)
+
+m0c <- bind_rows(m0c_anger, m0c_sadness, m0c_pride)
+
+```
+
+### Viz
+
+```{r}
+m0cp <- ggplot(m0c) +
+  aes(probability, density, group = emotion, color = emotion, fill = emotion) +
+  geom_smooth(method = "loess") +
+  labs(title = "M0 accomplishment: baseline model") +
+  theme_pubr() +
+  scale_fill_manual(values = c("#E24263", "#F4B43C", "#408F8A")) +
+  scale_color_manual(values = c("#E24263", "#F4B43C", "#408F8A")) 
+```
+
+# Model 1
+
+## Offense
+
+### Data processing
+
+```{r}
+m1a_anger <- as.data.frame(fromJSON(file = "../data/m1a_anger.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "anger") |>
+  rename(probability = item)
+  
+m1a_sadness <- as.data.frame(fromJSON(file = "../data/m1a_sadness.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "sadness") |>
+  rename(probability = item)
+
+m1a_pride <- as.data.frame(fromJSON(file = "../data/m1a_pride.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "pride") |>
+  rename(probability = item)
+
+m1a <- bind_rows(m1a_anger, m1a_sadness, m1a_pride)
+
+```
+
+### Viz
+
+```{r}
+m1ap <- ggplot(m1a) +
+  aes(probability, density, group = emotion, color = emotion, fill = emotion) +
+  geom_smooth(method = "loess") +
+  labs(title = "M1 offense: degraded somatic") +
+  theme_pubr() +
+  scale_fill_manual(values = c("#E24263", "#F4B43C", "#408F8A")) +
+  scale_color_manual(values = c("#E24263", "#F4B43C", "#408F8A")) 
+```
+
+## Loss
+
+### Data processing
+
+```{r}
+m1b_anger <- as.data.frame(fromJSON(file = "../data/m1b_anger.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "anger") |>
+  rename(probability = item)
+  
+m1b_sadness <- as.data.frame(fromJSON(file = "../data/m1b_sadness.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "sadness") |>
+  rename(probability = item)
+
+m1b_pride <- as.data.frame(fromJSON(file = "../data/m1b_pride.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "pride") |>
+  rename(probability = item)
+
+m1b <- bind_rows(m1b_anger, m1b_sadness, m1b_pride)
+
+```
+
+### Viz
+
+```{r}
+m1bp <- ggplot(m1b) +
+  aes(probability, density, group = emotion, color = emotion, fill = emotion) +
+  geom_smooth(method = "loess") +
+  labs(title = "M1 loss: degraded somatic") +
+  theme_pubr() +
+  scale_fill_manual(values = c("#E24263", "#F4B43C", "#408F8A")) +
+  scale_color_manual(values = c("#E24263", "#F4B43C", "#408F8A")) 
+```
+
+## Accomplishment
+
+### Data processing
+
+```{r}
+m1c_anger <- as.data.frame(fromJSON(file = "../data/m1c_anger.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "anger") |>
+  rename(probability = item)
+  
+m1c_sadness <- as.data.frame(fromJSON(file = "../data/m1c_sadness.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "sadness") |>
+  rename(probability = item)
+
+m1c_pride <- as.data.frame(fromJSON(file = "../data/m1c_pride.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "pride") |>
+  rename(probability = item)
+
+m1c <- bind_rows(m1c_anger, m1c_sadness, m1c_pride)
+
+```
+
+### Viz
+
+```{r}
+m1cp <- ggplot(m1c) +
+  aes(probability, density, group = emotion, color = emotion, fill = emotion) +
+  geom_smooth(method = "loess") +
+  labs(title = "M1 accomplishment: degraded somatic") +
+  theme_pubr() +
+  scale_fill_manual(values = c("#E24263", "#F4B43C", "#408F8A")) +
+  scale_color_manual(values = c("#E24263", "#F4B43C", "#408F8A")) 
+
+```
+
+# Model 2
+
+## Offense
+
+### Data processing
+
+```{r}
+m2a_anger <- as.data.frame(fromJSON(file = "../data/m2a_anger.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "anger") |>
+  rename(probability = item)
+  
+m2a_sadness <- as.data.frame(fromJSON(file = "../data/m2a_sadness.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "sadness") |>
+  rename(probability = item)
+
+m2a_pride <- as.data.frame(fromJSON(file = "../data/m2a_pride.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "pride") |>
+  rename(probability = item)
+
+m2a <- bind_rows(m2a_anger, m2a_sadness, m2a_pride)
+
+```
+
+### Viz
+
+```{r}
+m2ap <- ggplot(m2a) +
+  aes(probability, density, group = emotion, color = emotion, fill = emotion) +
+  geom_smooth(method = "loess") +
+  labs(title = "M2 offense: degraded interoception") +
+  theme_pubr() +
+  scale_fill_manual(values = c("#E24263", "#F4B43C", "#408F8A")) +
+  scale_color_manual(values = c("#E24263", "#F4B43C", "#408F8A")) 
+```
+
+## Loss
+
+### Data processing
+
+```{r}
+m2b_anger <- as.data.frame(fromJSON(file = "../data/m2b_anger.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "anger") |>
+  rename(probability = item)
+  
+m2b_sadness <- as.data.frame(fromJSON(file = "../data/m2b_sadness.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "sadness") |>
+  rename(probability = item)
+
+m2b_pride <- as.data.frame(fromJSON(file = "../data/m2b_pride.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "pride") |>
+  rename(probability = item)
+
+m2b <- bind_rows(m2b_anger, m2b_sadness, m2b_pride)
+
+```
+
+### Viz
+
+```{r}
+m2bp <- ggplot(m2b) +
+  aes(probability, density, group = emotion, color = emotion, fill = emotion) +
+  geom_smooth(method = "loess") +
+  labs(title = "M2 loss: degraded interoception") +
+  theme_pubr() +
+  scale_fill_manual(values = c("#E24263", "#F4B43C", "#408F8A")) +
+  scale_color_manual(values = c("#E24263", "#F4B43C", "#408F8A")) 
+```
+
+## Accomplishment
+
+### Data processing
+
+```{r}
+m2c_anger <- as.data.frame(fromJSON(file = "../data/m2c_anger.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "anger") |>
+  rename(probability = item)
+  
+m2c_sadness <- as.data.frame(fromJSON(file = "../data/m2c_sadness.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "sadness") |>
+  rename(probability = item)
+
+m2c_pride <- as.data.frame(fromJSON(file = "../data/m2c_pride.json")) |>
+  pivot_longer(item:density.100, values_to = "value", names_to = "name") |>
+  mutate(name = gsub('[0-9.]', '', name)) |>
+  mutate(rown = row_number()) |>
+  mutate(rown = ifelse(rown %% 2, rown+1, rown)) |>
+  pivot_wider(names_from = name, values_from = value) |>
+  select(-rown) |>
+  mutate(emotion = "pride") |>
+  rename(probability = item)
+
+m2c <- bind_rows(m2c_anger, m2c_sadness, m2c_pride)
+
+```
+
+### Viz
+
+```{r}
+m2cp <- ggplot(m2c) +
+  aes(probability, density, group = emotion, color = emotion, fill = emotion) +
+  geom_smooth(method = "loess") +
+  labs(title = "M2 accomplishment: degraded interoception") +
+  theme_pubr() +
+  scale_fill_manual(values = c("#E24263", "#F4B43C", "#408F8A")) +
+  scale_color_manual(values = c("#E24263", "#F4B43C", "#408F8A")) 
+```
+
+# Combined plot
+
+```{r}
+m0ap + m0bp + m0cp + m1ap + m1bp + m1cp + m2ap + m2bp + m2cp + plot_layout(ncol = 3)
+```

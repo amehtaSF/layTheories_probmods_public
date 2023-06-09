@@ -1,0 +1,292 @@
+---
+title: "Analysis"
+author: "Ashish"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    theme: paper
+---
+Initialization
+===
+```{r, message=FALSE}
+rm(list=ls())
+library(rsurveyutils)
+library(here)
+library(tidyverse)
+library(ggthemr)
+# theme_set(theme_bw())
+ggthemr("fresh")
+library(tidylog)
+```
+
+
+Preprocessing
+===
+
+Functions
+---
+```{r}
+```
+
+Read data
+---
+```{r, message=FALSE}
+df_baseline <- read_csv(here("experiments/layPriorAgainstNeg/distributions/layPriorAgainstNeg_baseline.csv"))
+df_negAverse <- read_csv(here("experiments/layPriorAgainstNeg/distributions/layPriorAgainstNeg_negAverse.csv"))
+df_suppression <- read_csv(here("experiments/layPriorAgainstNeg/distributions/layPriorAgainstNeg_suppression.csv"))
+df_negAverse_suppression <- read_csv(here("experiments/layPriorAgainstNeg/distributions/layPriorAgainstNeg_negAverse_suppression.csv"))
+df_earlySupp <- read_csv(here("experiments/layPriorAgainstNeg/distributions/layPriorAgainstNeg_earlySuppression.csv"))
+df_negAverse_earlySupp <- read_csv(here("experiments/layPriorAgainstNeg/distributions/layPriorAgainstNeg_negAverse_earlySuppression.csv"))
+```
+
+
+```{r, echo=FALSE}
+# ------ End Preprocessing ------ #
+# ----- Run all chunks above -----#
+```
+
+
+baseline
+---
+```{r}
+
+df_baseline %>% 
+  pull(layTheoryWeight) %>%
+  mean
+df_baseline %>% 
+  pull(anger) %>%
+  mean
+df_baseline %>% 
+  pull(sadness) %>%
+  mean
+df_baseline %>% 
+  pull(happiness) %>%
+  mean
+
+
+
+df_negAverse %>% 
+  # filter(sadness < .5) %>% 
+  pivot_longer(-prob) %>% 
+  filter(name != "layTheoryWeight") %>% 
+  ggplot(aes(x = value, color = name, fill=name)) + 
+  geom_density(alpha = .2)
+  # scale_x_continuous(limits = c(0, .5))
+
+
+df_negAverse %>% 
+  # filter(sadness < .5) %>% 
+  pivot_longer(-prob) %>% 
+  filter(name == "layTheoryWeight") %>% 
+  ggplot(aes(x = value, color = name, fill=name)) + 
+  geom_density(alpha = .2)
+  # scale_x_continuous(limits = c(0, .5))
+
+```
+
+neg averse
+---
+```{r}
+
+df_negAverse %>% 
+  pull(layTheoryWeight) %>%
+  mean
+df_negAverse %>% 
+  pull(anger) %>%
+  mean
+df_negAverse %>% 
+  pull(sadness) %>%
+  mean
+df_negAverse %>% 
+  pull(happiness) %>%
+  mean
+
+
+
+df_negAverse %>% 
+  # filter(sadness < .5) %>% 
+  pivot_longer(-prob) %>% 
+  filter(name != "layTheoryWeight") %>% 
+  ggplot(aes(x = value, color = name, fill=name)) + 
+  geom_density(alpha = .2)
+  # scale_x_continuous(limits = c(0, .5))
+
+
+df_negAverse %>% 
+  # filter(sadness < .5) %>% 
+  pivot_longer(-prob) %>% 
+  filter(name == "layTheoryWeight") %>% 
+  ggplot(aes(x = value, color = name, fill=name)) + 
+  geom_density(alpha = .2)
+  # scale_x_continuous(limits = c(0, .5))
+
+```
+
+
+suppression
+---
+```{r}
+
+df_suppression %>% 
+  pull(layTheoryWeight) %>%
+  mean
+df_suppression %>% 
+  pull(anger) %>%
+  mean
+df_suppression %>% 
+  pull(sadness) %>%
+  mean
+df_suppression %>% 
+  pull(happiness) %>%
+  mean
+
+
+
+df_suppression %>% 
+  # filter(sadness < .5) %>% 
+  pivot_longer(-prob) %>% 
+  filter(name != "layTheoryWeight") %>% 
+  ggplot(aes(x = value, color = name, fill=name)) + 
+  geom_density(alpha = .2)  +
+  # scale_x_continuous(limits = c(0, .5))
+  geom_vline(xintercept = .5, linetype = "dashed")
+
+
+df_suppression %>% 
+  # filter(sadness < .5) %>% 
+  pivot_longer(-prob) %>% 
+  filter(name == "layTheoryWeight") %>% 
+  ggplot(aes(x = value, color = name, fill=name)) + 
+  geom_density(alpha = .2)
+  # scale_x_continuous(limits = c(0, .5))
+
+```
+
+negAverse_suppression
+---
+```{r}
+
+df_negAverse_suppression %>% 
+  pull(layTheoryWeight) %>%
+  mean
+df_negAverse_suppression %>% 
+  pull(anger) %>%
+  mean
+df_negAverse_suppression %>% 
+  pull(sadness) %>%
+  mean
+df_negAverse_suppression %>% 
+  pull(happiness) %>%
+  mean
+
+
+
+df_negAverse_suppression %>% 
+  # filter(sadness < .5) %>% 
+  pivot_longer(-prob) %>% 
+  filter(name != "layTheoryWeight") %>% 
+  ggplot(aes(x = value, color = name, fill=name)) + 
+  geom_density(alpha = .2)  +
+  # scale_x_continuous(limits = c(0, .5))
+  geom_vline(xintercept = .5, linetype = "dashed")
+
+
+df_negAverse_suppression %>% 
+  # filter(sadness < .5) %>% 
+  pivot_longer(-prob) %>% 
+  filter(name == "layTheoryWeight") %>% 
+  ggplot(aes(x = value, color = name, fill=name)) + 
+  geom_density(alpha = .2)
+  # scale_x_continuous(limits = c(0, .5))
+
+```
+
+early supp
+---
+```{r}
+
+df_earlySupp %>% 
+  pull(layTheoryWeight) %>%
+  mean
+df_earlySupp %>% 
+  pull(anger) %>%
+  mean
+df_earlySupp %>% 
+  pull(sadness) %>%
+  mean
+df_earlySupp %>% 
+  pull(happiness) %>%
+  mean
+
+
+
+df_earlySupp %>% 
+  pivot_longer(-prob) %>% 
+  filter(name != "layTheoryWeight") %>% 
+  ggplot(aes(x = value, color = name, fill=name)) + 
+  geom_density(alpha = .2)  +
+  # scale_x_continuous(limits = c(0, .5))
+  geom_vline(xintercept = .5, linetype = "dashed")
+
+
+df_earlySupp %>% 
+  pivot_longer(-prob) %>% 
+  filter(name == "layTheoryWeight") %>% 
+  ggplot(aes(x = value, color = name, fill=name)) + 
+  geom_density(alpha = .2)
+  # scale_x_continuous(limits = c(0, .5))
+
+```
+
+
+neg averse early supp
+---
+```{r}
+
+df_negAverse_earlySupp %>% 
+  pull(layTheoryWeight) %>%
+  mean
+df_negAverse_earlySupp %>% 
+  pull(anger) %>%
+  mean
+df_negAverse_earlySupp %>% 
+  pull(sadness) %>%
+  mean
+df_negAverse_earlySupp %>% 
+  pull(happiness) %>%
+  mean
+
+
+
+df_negAverse_earlySupp %>% 
+  pivot_longer(-prob) %>% 
+  filter(name != "layTheoryWeight") %>% 
+  ggplot(aes(x = value, color = name, fill=name)) + 
+  geom_density(alpha = .2)  +
+  # scale_x_continuous(limits = c(0, .5))
+  geom_vline(xintercept = .5, linetype = "dashed")
+
+
+df_negAverse_earlySupp %>% 
+  pivot_longer(-prob) %>% 
+  filter(name == "layTheoryWeight") %>% 
+  ggplot(aes(x = value, color = name, fill=name)) + 
+  geom_density(alpha = .2)
+  # scale_x_continuous(limits = c(0, .5))
+
+```
+
+
+
+
+Session Info
+===
+```{r}
+sessionInfo()
+```
+
